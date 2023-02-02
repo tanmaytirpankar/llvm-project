@@ -55,6 +55,11 @@ enum Func {
   FMA,
 };
 
+typedef enum {
+  Float,
+  Double
+} FloatingType;
+
 
 // Atomic Condition storage
 
@@ -64,10 +69,7 @@ struct ACItem {
   int NumOperands;
   const char *ResultVar;
   char **OperandNames;
-  enum {
-    Float,
-    Double
-  } OperandType;
+  FloatingType Type;
 //  double *OperandValues;
 //  double *ACWRTOperands;
   union {
@@ -119,14 +121,14 @@ void fACStoreACItems(FILE *FP, ACItem **ObjectPointerList, uint64_t NumObjects) 
                 J,
                 ObjectPointerList[I]->OperandNames[J],
                 J,
-                ObjectPointerList[I]->OperandType==ACItem::Float? ObjectPointerList[I]->OperandValues.OperandValues_float[J]:
+                ObjectPointerList[I]->Type==ACItem::Float? ObjectPointerList[I]->OperandValues.OperandValues_float[J]:
                                                                    ObjectPointerList[I]->OperandValues.OperandValues_double[J]);
       }
       for (int J = 0; J < ObjectPointerList[I]->NumOperands; ++J) {
         fprintf(FP,
                 "\t\t\t\"ACWRTOperand %d\": %0.15lf,\n",
                 J,
-                ObjectPointerList[I]->OperandType==ACItem::Float? ObjectPointerList[I]->ACWRTOperands.ACWRTOperands_float[J]:
+                ObjectPointerList[I]->Type==ACItem::Float? ObjectPointerList[I]->ACWRTOperands.ACWRTOperands_float[J]:
                                                                  ObjectPointerList[I]->ACWRTOperands.ACWRTOperands_double[J]);
       }
       for (int J = 0; J < ObjectPointerList[I]->NumOperands; ++J) {
@@ -1159,9 +1161,9 @@ void fACSetACItem(ACTable *AtomicConditionsTable, ACItem *NewValue)
     FoundItem->ResultVar = NewValue->ResultVar;
     for (int I = 0; I < FoundItem->NumOperands; ++I) {
       FoundItem->OperandNames[I] = NewValue->OperandNames[I];
-      if(FoundItem->OperandType == ACItem::Float)
+      if(FoundItem->Type == ACItem::Float)
         FoundItem->OperandValues.OperandValues_float[I] = NewValue->OperandValues.OperandValues_float[I];
-      else if(FoundItem->OperandType == ACItem::Double)
+      else if(FoundItem->Type == ACItem::Double)
         FoundItem->OperandValues.OperandValues_double[I] = NewValue->OperandValues.OperandValues_double[I];
       FoundItem->ACStrings[I] = fACDumpAtomicConditionString(NewValue->OperandNames,
                                                              NewValue->OperandValues,
@@ -1214,7 +1216,7 @@ void fACSetACItem(ACTable *AtomicConditionsTable, ACItem *NewValue)
 
 ACItem **fACComputeACF(const char *ResultVar,
                        char **OperandNames,
-                       double *OperandValues,
+                       float *OperandValues,
                        enum Func F,
                        const char *FileName,
                        int LineNumber) {
@@ -1240,10 +1242,10 @@ ACItem **fACComputeACF(const char *ResultVar,
   Item.NumOperands = NumOperands;
   Item.ResultVar = ResultVar;
   Item.OperandNames = OperandNames;
-  Item.OperandType = ACItem::Double;
+  Item.Type = ACItem::Float;
   Item.OperandValues.OperandValues_float = OperandValues;
 
-  if((Item.ACWRTOperands.ACWRTOperands_float = (double *)malloc(sizeof(double) * Item.NumOperands)) == NULL) {
+  if((Item.ACWRTOperands.ACWRTOperands_float = (float *)malloc(sizeof(float) * Item.NumOperands)) == NULL) {
     printf("#fAC: Not enough memory for ACs!");
     exit(EXIT_FAILURE);
   }
@@ -1272,7 +1274,7 @@ ACItem **fACComputeACF(const char *ResultVar,
     Item.ACStrings[1] = fACDumpAtomicConditionString(OperandNames, OperandValues, F, 1);
     break;
   case 2:
-    Item.ACWRTOperands.ACWRTOperands_float[0]=Item.ACWRTOperands[1]=1.0;
+    Item.ACWRTOperands.ACWRTOperands_float[0]=Item.ACWRTOperands.ACWRTOperands_float[1]=1.0;
     //    printf("AC of x*y | x=%lf, y=%lf WRT x is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[0]);
     //    printf("AC of x*y | x=%lf, y=%lf WRT y is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[1]);
 
@@ -1280,7 +1282,7 @@ ACItem **fACComputeACF(const char *ResultVar,
     Item.ACStrings[1] = fACDumpAtomicConditionString(OperandNames, OperandValues, F, 1);
     break;
   case 3:
-    Item.ACWRTOperands.ACWRTOperands_float[0]=Item.ACWRTOperands[1]=1.0;
+    Item.ACWRTOperands.ACWRTOperands_float[0]=Item.ACWRTOperands.ACWRTOperands_float[1]=1.0;
     //    printf("AC of x/y | x=%lf, y=%lf WRT x is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[0]);
     //    printf("AC of x/y | x=%lf, y=%lf WRT y is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[1]);
 
@@ -1441,7 +1443,7 @@ ACItem **fACComputeACD(const char *ResultVar,
   Item.NumOperands = NumOperands;
   Item.ResultVar = ResultVar;
   Item.OperandNames = OperandNames;
-  Item.OperandType = ACItem::Double;
+  Item.Type = ACItem::Double;
   Item.OperandValues.OperandValues_double = OperandValues;
 
   if((Item.ACWRTOperands.ACWRTOperands_double = (double *)malloc(sizeof(double) * Item.NumOperands)) == NULL) {
@@ -1473,7 +1475,7 @@ ACItem **fACComputeACD(const char *ResultVar,
     Item.ACStrings[1] = fACDumpAtomicConditionString(OperandNames, OperandValues, F, 1);
     break;
   case 2:
-    Item.ACWRTOperands.ACWRTOperands_double[0]=Item.ACWRTOperands[1]=1.0;
+    Item.ACWRTOperands.ACWRTOperands_double[0]=Item.ACWRTOperands.ACWRTOperands_double[1]=1.0;
     //    printf("AC of x*y | x=%lf, y=%lf WRT x is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[0]);
     //    printf("AC of x*y | x=%lf, y=%lf WRT y is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[1]);
 
@@ -1481,7 +1483,7 @@ ACItem **fACComputeACD(const char *ResultVar,
     Item.ACStrings[1] = fACDumpAtomicConditionString(OperandNames, OperandValues, F, 1);
     break;
   case 3:
-    Item.ACWRTOperands.ACWRTOperands_double[0]=Item.ACWRTOperands[1]=1.0;
+    Item.ACWRTOperands.ACWRTOperands_double[0]=Item.ACWRTOperands.ACWRTOperands_double[1]=1.0;
     //    printf("AC of x/y | x=%lf, y=%lf WRT x is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[0]);
     //    printf("AC of x/y | x=%lf, y=%lf WRT y is %lf.\n", OperandValues[0], OperandValues[1], Item.ACWRTOperands[1]);
 

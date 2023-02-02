@@ -71,7 +71,12 @@ struct AFProduct {
   struct AFProduct *ProductTail;
   char *Input;
   int Height;
-  double AF;
+  FloatingType Type;
+//  double AF;
+  union {
+    float AF_Float;
+    double AF_Double;
+  } AF;
 };
 
 typedef struct AFProduct AFProduct;
@@ -130,7 +135,8 @@ void fAFStoreAFProducts(FILE *FP, AFProduct **ObjectPointerList, uint64_t NumObj
                         ProductTail!=NULL?ObjectPointerList[J]->ProductTail->ItemId:
                     -1,
                 ObjectPointerList[J]->Input,
-                ObjectPointerList[J]->AF) > 0) {
+                ObjectPointerList[J]->Type==FloatingType::Float? ObjectPointerList[J]->AF.AF_Float:
+                                                               ObjectPointerList[J]->AF.AF_Double) > 0) {
 
       fprintf(FP, "\t\t\t\"Path(AFProductIds)\": [%d", ProductPath[0]->ItemId);
       for (int K = 1; K < ObjectPointerList[J]->Height; ++K)
@@ -194,7 +200,8 @@ void fAFStoreAFItems(FILE *FP, AFItem **ObjectPointerList, uint64_t NumObjects) 
                           ProductTail!=NULL?ObjectPointerList[I]->Components[J]->ProductTail->ItemId:
                       -1,
                   ObjectPointerList[I]->Components[J]->Input,
-                  ObjectPointerList[I]->Components[J]->AF) > 0) {
+                  ObjectPointerList[I]->Components[J]->Type==FloatingType ::Float? ObjectPointerList[I]->Components[J]->AF.AF_Float:
+                                                                                ObjectPointerList[I]->Components[J]->AF.AF_Double) > 0) {
 
         fprintf(FP, "\t\t\t\"Path(AFProductIds)\": [%d", ProductPath[0]->ItemId);
         for (int K = 1; K < ObjectPointerList[I]->Components[J]->Height; ++K)
@@ -322,7 +329,8 @@ void fAFStoreInFile(AFItem **ObjectToStore) {
                         ProductTail!=NULL?(*ObjectToStore)->Components[J]->ProductTail->ItemId:
                     -1,
                 (*ObjectToStore)->Components[J]->Input,
-                isnan((*ObjectToStore)->Components[J]->AF)?-1.0:
+                isnan((*ObjectToStore)->Components[J]->Type==FloatingType ::Float? (*ObjectToStore)->Components[J]->AF.AF_Float:
+                                                                                (*ObjectToStore)->Components[J]->AF.AF_Double)?-1.0:
                                                            (*ObjectToStore)->Components[J]->AF) > 0) {
       fprintf(FP, "\t\t\t\"Path(AFProductIds)\": [%d", ProductPath[0]->ItemId);
       for (int K = 1; K < (*ObjectToStore)->Components[J]->Height; ++K)
@@ -351,15 +359,27 @@ int fAFisMemoryOpInstruction(char *InstructionString) {
 }
 
 int fAFComparator(const void *a, const void *b) {
-  double AF1 = (*(AFProduct **)a)->AF;
-  double AF2 = (*(AFProduct **)b)->AF;
+  if ((*(AFProduct **)a)->Type == FloatingType::Float) {
+    float AF1 = (*(AFProduct **)a)->AF.AF_Float;
+    float AF2 = (*(AFProduct **)b)->AF.AF_Float;
 
-  if(AF2 > AF1)
-    return 1;
-  else if(AF2 == AF1)
-    return 0;
-  else
-    return -1;
+    if(AF2 > AF1)
+      return 1;
+    else if(AF2 == AF1)
+      return 0;
+    else
+      return -1;
+  } else if ((*(AFProduct **)a)->Type == FloatingType ::Double) {
+    double AF1 = (*(AFProduct **)a)->AF.AF_Double;
+    double AF2 = (*(AFProduct **)b)->AF.AF_Double;
+
+    if(AF2 > AF1)
+      return 1;
+    else if(AF2 == AF1)
+      return 0;
+    else
+      return -1;
+  }
 }
 
 /*----------------------------------------------------------------------------*/
@@ -407,7 +427,7 @@ void fAFInitialize() {
 //      Add this new AFProduct to the new AFItem
 //  Add AFItem to the AFTable
 //  Return the AFItem
-AFItem **fAFComputeAF(ACItem **AC, AFItem ***AFItemWRTOperands, int NumOperands) {
+AFItem **fAFComputeAF(ACItem **AC, AFItem ***AFItemWRTOperands, int NumOperands, FloatingType Type) {
 #if FAF_DEBUG>=2
   printf("\nCreating AFItem\n");
   printf("\tACId: %d\n", (*AC)->ItemId);
@@ -464,8 +484,14 @@ AFItem **fAFComputeAF(ACItem **AC, AFItem ***AFItemWRTOperands, int NumOperands)
     if(AFItemWRTOperands[I] != NULL) {
 #if MEMORY_OPT
       assert((*AFItemWRTOperands[I])->Components[0] != NULL);
-      double GreatestAF = (*AFItemWRTOperands[I])->Components[0]->AF *
-                          (*AC)->ACWRTOperands[I];
+      double GreatestAF;
+      GreatestAF = (*AFItemWRTOperands[I])->Components[0]->Type ==
+                           FloatingType::Float?
+                       (*AFItemWRTOperands[I])->Components[0]->AF.AF_Float *
+                           (*AC)->ACWRTOperands.ACWRTOperands_float[I] :
+                       (*AFItemWRTOperands[I])->Components[0]->AF.AF_Double *
+                           (*AC)->ACWRTOperands.ACWRTOperands_double[I];
+
       int CandidateIndex = 0;
 #endif
 
@@ -474,10 +500,16 @@ AFItem **fAFComputeAF(ACItem **AC, AFItem ***AFItemWRTOperands, int NumOperands)
       for (int J = 0; J < (*AFItemWRTOperands[I])->NumAFComponents; ++J) {
 #if MEMORY_OPT
         // Get the greatest AF and index of the corresponding component.
-        if(GreatestAF < (*AFItemWRTOperands[I])->Components[J]->AF *
-                             (*AC)->ACWRTOperands[I]) {
-          GreatestAF = (*AFItemWRTOperands[I])->Components[J]->AF *
-                       (*AC)->ACWRTOperands[I];
+        if(GreatestAF < (*AFItemWRTOperands[I])->Components[J]->Type ==
+            FloatingType::Float? (*AFItemWRTOperands[I])->Components[J]->AF.AF_Float *
+              (*AC)->ACWRTOperands.ACWRTOperands_float[I] :
+        (*AFItemWRTOperands[I])->Components[J]->AF.AF_Double *
+            (*AC)->ACWRTOperands.ACWRTOperands_double[I]) {
+          GreatestAF = (*AFItemWRTOperands[I])->Components[J]->Type ==
+                               FloatingType::Float? (*AFItemWRTOperands[I])->Components[J]->AF.AF_Float *
+                                 (*AC)->ACWRTOperands.ACWRTOperands_float[I] :
+                           (*AFItemWRTOperands[I])->Components[J]->AF.AF_Double *
+                               (*AC)->ACWRTOperands.ACWRTOperands_double[I];
           CandidateIndex = J;
         }
 #else
@@ -490,8 +522,13 @@ AFItem **fAFComputeAF(ACItem **AC, AFItem ***AFItemWRTOperands, int NumOperands)
         NewAFComponent->Factor = *AC;
         NewAFComponent->ProductTail = (*AFItemWRTOperands[I])->Components[J];
         NewAFComponent->Height = (*AFItemWRTOperands[I])->Components[J]->Height+1;
-        NewAFComponent->AF = (*AFItemWRTOperands[I])->Components[J]->AF *
-                             (*AC)->ACWRTOperands[I];
+        NewAFComponent->Type = Type;
+        if(Type == FloatingType::Float)
+          NewAFComponent->AF.AF_Float = (*AFItemWRTOperands[I])->Components[J]->AF.AF_Float *
+                             (*AC)->ACWRTOperands.ACWRTOperands_float[I];
+        else
+          NewAFComponent->AF.AF_Double = (*AFItemWRTOperands[I])->Components[J]->AF.AF_Double *
+                             (*AC)->ACWRTOperands.ACWRTOperands_double[I];
 
         AFComponentCounter++;
 
@@ -511,8 +548,12 @@ AFItem **fAFComputeAF(ACItem **AC, AFItem ***AFItemWRTOperands, int NumOperands)
       NewAFComponent->Factor = *AC;
       NewAFComponent->ProductTail = (*AFItemWRTOperands[I])->Components[CandidateIndex];
       NewAFComponent->Height = (*AFItemWRTOperands[I])->Components[CandidateIndex]->Height+1;
-      NewAFComponent->AF = (*AFItemWRTOperands[I])->Components[CandidateIndex]->AF *
-                           (*AC)->ACWRTOperands[I];
+      if(Type == FloatingType::Float)
+        NewAFComponent->AF.AF_Float = (*AFItemWRTOperands[I])->Components[CandidateIndex]->AF.AF_Float *
+                                      (*AC)->ACWRTOperands.ACWRTOperands_float[I];
+      else
+        NewAFComponent->AF.AF_Double = (*AFItemWRTOperands[I])->Components[CandidateIndex]->AF.AF_Double *
+                                       (*AC)->ACWRTOperands.ACWRTOperands_double[I];
 
       AFComponentCounter++;
 
@@ -529,7 +570,11 @@ AFItem **fAFComputeAF(ACItem **AC, AFItem ***AFItemWRTOperands, int NumOperands)
       NewAFComponent->Factor = *AC;
       NewAFComponent->ProductTail = NULL;
       NewAFComponent->Height = 1;
-      NewAFComponent->AF = (*AC)->ACWRTOperands[I];
+      NewAFComponent->Type = Type;
+      if(Type == FloatingType::Float)
+        NewAFComponent->AF.AF_Float = (*AC)->ACWRTOperands.ACWRTOperands_float[I];
+      else
+        NewAFComponent->AF.AF_Double = (*AC)->ACWRTOperands.ACWRTOperands_double[I];
 
       AFComponentCounter++;
 
@@ -567,7 +612,8 @@ void fAFPrintTopAmplificationPaths() {
   for (int I = 0; I < min(5, AFs->AFItems[AFs->ListLength-1]->NumAFComponents); ++I) {
     AFProduct **ProductPath= fAFFlattenAFComponentsPath(AFs->AFItems[AFs->ListLength-1]->Components[I]);
     printf("AF: %0.15lf of Node:%d WRT Input:%s through path: [",
-           AFs->AFItems[AFs->ListLength-1]->Components[I]->AF,
+           AFs->AFItems[AFs->ListLength-1]->Components[I]->Type == FloatingType::Float ? AFs->AFItems[AFs->ListLength-1]->Components[I]->AF.AF_Float :
+                                                                                      AFs->AFItems[AFs->ListLength-1]->Components[I]->AF.AF_Double,
            AFs->AFItems[AFs->ListLength-1]->Components[I]->ItemId,
            AFs->AFItems[AFs->ListLength-1]->Components[I]->Input);
 
@@ -592,7 +638,8 @@ void fAFPrintTopFromAllAmplificationPaths() {
   for (int I = 0; I < min(10, AFComponentCounter); ++I) {
     AFProduct **ProductPath= fAFFlattenAFComponentsPath(Paths[I]);
     printf("AF: %0.15lf of Node:%d WRT Input:%s through path: [",
-           Paths[I]->AF,
+           Paths[I]->Type == FloatingType::Float ? Paths[I]->AF.AF_Float :
+                                              Paths[I]->AF.AF_Double,
            Paths[I]->ItemId,
            Paths[I]->Input);
 
