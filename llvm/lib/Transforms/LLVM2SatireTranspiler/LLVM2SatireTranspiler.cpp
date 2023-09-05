@@ -6,6 +6,21 @@
 
 using namespace llvm;
 
+std::string getOperandAsString(Value *V) {
+    if(isa<Constant>(V)) {
+      if(isa<ConstantFP>(V)) {
+        if(V->getType()->isHalfTy() || V->getType()->isFloatTy())
+          return std::to_string(dyn_cast<ConstantFP>(V)->getValueAPF().convertToFloat());
+        else if(V->getType()->isDoubleTy())
+          return std::to_string(dyn_cast<ConstantFP>(V)->getValueAPF().convertToDouble());
+      } else if (isa<ConstantInt>(V)) {
+        return toString(dyn_cast<ConstantInt>(V)->getValue(), 10, true);
+      }
+    }
+    
+    return V->getName().str();
+}
+
 PreservedAnalyses LLVM2SatirePass::run(Module &M, ModuleAnalysisManager &AM) {
   std::string FuncName;
   std::ofstream Outfile;
@@ -90,23 +105,23 @@ PreservedAnalyses LLVM2SatirePass::run(Module &M, ModuleAnalysisManager &AM) {
           // Handle arithmetic operations
           if(I.getOpcode() == Instruction::FAdd) {
             Outfile << "\t" << I.getName().str() << " = "
-                    << I.getOperand(0)->getName().str() << " + "
-                    << I.getOperand(1)->getName().str() << ";\n";
+                    << getOperandAsString(I.getOperand(0)) << " + "
+                    << getOperandAsString(I.getOperand(1)) << ";\n";
           }
           else if(I.getOpcode() == Instruction::FSub) {
             Outfile << "\t" << I.getName().str() << " = "
-                    << I.getOperand(0)->getName().str() << " - "
-                    << I.getOperand(1)->getName().str() << ";\n";
+                    << getOperandAsString(I.getOperand(0)) << " - "
+                    << getOperandAsString(I.getOperand(1)) << ";\n";
           }
           else if(I.getOpcode() == Instruction::FMul) {
             Outfile << "\t" << I.getName().str() << " = "
-                    << I.getOperand(0)->getName().str() << " * "
-                    << I.getOperand(1)->getName().str() << ";\n";
+                    << getOperandAsString(I.getOperand(0)) << " * "
+                    << getOperandAsString(I.getOperand(1)) << ";\n";
           }
           else if(I.getOpcode() == Instruction::FDiv) {
             Outfile << "\t" << I.getName().str() << " = "
-                    << I.getOperand(0)->getName().str() << " / "
-                    << I.getOperand(1)->getName().str() << ";\n";
+                    << getOperandAsString(I.getOperand(0)) << " / "
+                    << getOperandAsString(I.getOperand(1)) << ";\n";
           }
           else if(I.getOpcode() == Instruction::FRem) {
             errs() << "ERROR: Satire does not support remainder operation\n";
@@ -118,43 +133,43 @@ PreservedAnalyses LLVM2SatirePass::run(Module &M, ModuleAnalysisManager &AM) {
             if(std::regex_search(Str.c_str(), Cm,
                                   std::regex("s*sinh*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "sinh(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "sinh(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*cosh*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "cosh(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "cosh(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                    std::regex("s*sin*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "sin(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "sin(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*cos*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "cos(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "cos(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*tan*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "tan(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "tan(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*cot*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "cot(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "cot(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*asin*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "asin(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "asin(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*sqrt*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "sqrt(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "sqrt(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*log*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "log(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "log(" << getOperandAsString(I.getOperand(0)) << ");\n";
             } else if(std::regex_search(Str.c_str(), Cm,
                                          std::regex("s*exp*"))) {
               Outfile << "\t" << I.getName().str() << " = "
-                      << "exp(" << I.getOperand(0)->getName().str() << ");\n";
+                      << "exp(" << getOperandAsString(I.getOperand(0)) << ");\n";
             }
           }
         }
@@ -185,5 +200,4 @@ PreservedAnalyses LLVM2SatirePass::run(Module &M, ModuleAnalysisManager &AM) {
 
   return PreservedAnalyses::all();
 }
-
 
