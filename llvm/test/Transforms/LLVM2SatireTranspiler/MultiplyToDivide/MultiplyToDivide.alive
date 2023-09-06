@@ -1,0 +1,11 @@
+define half @src(half %arg0, half %arg1, half %arg2) {
+  %x = fdiv half %arg0, %arg1
+  %y = fdiv half %x, %arg2
+  ret half %y
+}
+
+define half @tgt(half %arg0, half %arg1, half %arg2) {
+  %x = fmul half %arg1, %arg2
+  %y = fdiv half %arg0, %x
+  ret half %y
+}

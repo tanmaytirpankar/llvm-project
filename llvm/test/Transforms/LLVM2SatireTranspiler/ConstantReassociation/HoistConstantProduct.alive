@@ -1,0 +1,11 @@
+define float @src(float) {
+  %2 = fdiv float 2.5, %0
+  %3 = fmul float %2, 3.5
+  ret float %3
+}
+
+define float @tgt(float) {
+  %2 = fmul float 3.5, 2.5
+  %3 = fdiv float %2, %0
+  ret float %3
+}

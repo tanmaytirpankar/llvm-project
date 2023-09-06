@@ -1,0 +1,15 @@
+declare float @sqrtf(float noundef)
+
+define float @src(float, float) {
+  %x = call float @sqrtf(float noundef %0)
+  %y = call float @sqrtf(float noundef %1)
+  %r = fmul float %x, %y
+  ret float %r
+}
+
+define float @tgt(float, float) {
+  %m = fmul float %0, %1
+  %s = call float @sqrtf(float noundef %m)
+
+  ret float %s
+}
