@@ -30,7 +30,7 @@ PreservedAnalyses LLVM2SatirePass::run(Module &M, ModuleAnalysisManager &AM) {
 
   for (auto &G : M.globals()) {
     // Store Function name in a variable and create a file
-    if(G.getName() == "func") {
+    if(G.getName() == "function") {
       // Copy value from global variable
       FuncName = dyn_cast<ConstantDataArray>(G.getInitializer())->getAsCString().str();
       // Create a .txt file with FuncName as the name
