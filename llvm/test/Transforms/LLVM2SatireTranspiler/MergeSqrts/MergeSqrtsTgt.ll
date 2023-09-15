@@ -1,13 +1,13 @@
-@func = constant [4 x i8] c"tgt\00", align 1
-@arg0 = constant [2 x float] [float 1.0, float 90.0]
-@arg1 = constant [2 x float] [float 45.0, float 180.0]
+@function = constant [5 x i8] c"func\00", align 1
+@arg0 = constant [2 x double] [double 1.0, double 90.0]
+@arg1 = constant [2 x double] [double 45.0, double 180.0]
 @s = constant ptr null
 
-declare float @sqrtf(float noundef)
+declare double @sqrt(double noundef)
 
-define float @tgt(float %arg0, float %arg1) {
-  %m = fmul float %arg0, %arg1
-  %s = call float @sqrtf(float noundef %m)
+define double @func(double %arg0, double %arg1) {
+  %m = fmul double %arg0, %arg1
+  %s = call double @sqrt(double noundef %m)
   
-  ret float %s
+  ret double %s
 }

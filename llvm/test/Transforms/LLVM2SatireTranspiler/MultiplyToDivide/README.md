@@ -1,5 +1,6 @@
-Alives output:
+// (X / Y) / Z => X / (Y * Z)
 
+Alives output:
 
 ----------------------------------------
 define half @src(half %arg0, half %arg1, half %arg2) {
