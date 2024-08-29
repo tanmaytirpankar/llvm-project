@@ -4999,6 +4999,11 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
   }
 }
 
+Instruction* cs6475_optimizer(Instruction &I) {
+  // x & (0x7FFFFFFF - x) → x & 0x80000000
+  return nullptr;
+}
+
 bool InstCombinerImpl::run() {
   while (!Worklist.isEmpty()) {
     // Walk deferred instructions in reverse order, and push them to the
@@ -5121,7 +5126,8 @@ bool InstCombinerImpl::run() {
     LLVM_DEBUG(raw_string_ostream SS(OrigI); I->print(SS););
     LLVM_DEBUG(dbgs() << "IC: Visiting: " << OrigI << '\n');
 
-    if (Instruction *Result = visit(*I)) {
+    Instruction *Result = nullptr;
+    if ((Result = visit(*I)) || (Result = cs6475_optimizer(*I))) {
       ++NumCombined;
       // Should we replace the old instruction with a new one?
       if (Result != I) {
