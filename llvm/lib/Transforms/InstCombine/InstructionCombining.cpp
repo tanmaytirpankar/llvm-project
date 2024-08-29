@@ -4999,9 +4999,13 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
   }
 }
 
-Instruction* cs6475_optimizer(Instruction &I) {
+Instruction* cs6475_optimizer(Instruction *I) {
   // x & (0x7FFFFFFF - x) → x & 0x80000000
-  return nullptr;
+  Constant *C = nullptr;
+  Value *X = nullptr;
+  if (match(I, m_And(m_Constant(C), m_Value(X)))) {
+  }
+ return nullptr;
 }
 
 bool InstCombinerImpl::run() {
@@ -5127,7 +5131,7 @@ bool InstCombinerImpl::run() {
     LLVM_DEBUG(dbgs() << "IC: Visiting: " << OrigI << '\n');
 
     Instruction *Result = nullptr;
-    if ((Result = visit(*I)) || (Result = cs6475_optimizer(*I))) {
+    if ((Result = visit(*I)) || (Result = cs6475_optimizer(I))) {
       ++NumCombined;
       // Should we replace the old instruction with a new one?
       if (Result != I) {
