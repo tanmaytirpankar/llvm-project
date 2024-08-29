@@ -5000,20 +5000,22 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 }
 
 Instruction* cs6475_optimizer(Instruction *I) {
+  dbgs() << "\nCS 6475 InstCombine pass: running now\n";
+
   // BEGIN JOHN REGEHR
   // x & (0x7FFFFFFF - x) → x & 0x80000000
   Constant *C = nullptr;
   Value *X = nullptr;
   Value *Y = nullptr;
-  dbgs() << "hello1\n";
   if (match(I, m_And(m_Value(X), m_Value(Y)))) {
-    dbgs() << "hello2\n";
+    dbgs() << "JDR: matched the 'and'\n";
     if (match(Y, m_Sub(m_Constant(C), m_Specific(X)))) {
-      dbgs() << "hello3\n";
+      dbgs() << "JDR: matched the 'sub'\n";
       if (C->getUniqueInteger().isMaxSignedValue()) {
-	dbgs() << "applied the optimization\n";
+	dbgs() << "JDR: applied the optimization\n";
 	auto SMin = APInt::getSignedMinValue(C->getUniqueInteger().getBitWidth());
-	return BinaryOperator::CreateAnd(X, ConstantInt::get(I->getContext(), SMin));
+	Instruction *NewI = BinaryOperator::CreateAnd(X, ConstantInt::get(I->getContext(), SMin));
+	return NewI;
       }
     }
   }
