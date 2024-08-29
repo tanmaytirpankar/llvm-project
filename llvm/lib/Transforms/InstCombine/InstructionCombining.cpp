@@ -5020,7 +5020,7 @@ Instruction* cs6475_optimizer(Instruction *I) {
     }
   }
   // END JOHN REGEHR
-  
+
  return nullptr;
 }
 
