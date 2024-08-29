@@ -5000,11 +5000,25 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 }
 
 Instruction* cs6475_optimizer(Instruction *I) {
+  // BEGIN JOHN REGEHR
   // x & (0x7FFFFFFF - x) → x & 0x80000000
   Constant *C = nullptr;
   Value *X = nullptr;
-  if (match(I, m_And(m_Constant(C), m_Value(X)))) {
+  Value *Y = nullptr;
+  dbgs() << "hello1\n";
+  if (match(I, m_And(m_Value(X), m_Value(Y)))) {
+    dbgs() << "hello2\n";
+    if (match(Y, m_Sub(m_Constant(C), m_Specific(X)))) {
+      dbgs() << "hello3\n";
+      if (C->getUniqueInteger().isMaxSignedValue()) {
+	dbgs() << "applied the optimization\n";
+	auto SMin = APInt::getSignedMinValue(C->getUniqueInteger().getBitWidth());
+	return BinaryOperator::CreateAnd(X, ConstantInt::get(I->getContext(), SMin));
+      }
+    }
   }
+  // END JOHN REGEHR
+  
  return nullptr;
 }
 
