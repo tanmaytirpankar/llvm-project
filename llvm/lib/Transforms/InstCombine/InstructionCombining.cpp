@@ -5000,7 +5000,7 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 }
 
 Instruction* cs6475_optimizer(Instruction *I) {
-  dbgs() << "\nCS 6475 InstCombine pass: running now\n";
+  dbgs() << "\nCS 6475 matcher: running now\n";
 
   // BEGIN JOHN REGEHR
   // x & (0x7FFFFFFF - x) → x & 0x80000000
