@@ -4999,6 +4999,9 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
   }
 }
 
+void log_optzn(std::string Name) {
+}
+
 Instruction* cs6475_optimizer(Instruction *I) {
   dbgs() << "\nCS 6475 matcher: running now\n";
 
@@ -5012,7 +5015,7 @@ Instruction* cs6475_optimizer(Instruction *I) {
     if (match(Y, m_Sub(m_Constant(C), m_Specific(X)))) {
       dbgs() << "JDR: matched the 'sub'\n";
       if (C->getUniqueInteger().isMaxSignedValue()) {
-	dbgs() << "JDR: applied the optimization\n";
+	log_optzn("John Regehr");
 	auto SMin = APInt::getSignedMinValue(C->getUniqueInteger().getBitWidth());
 	Instruction *NewI = BinaryOperator::CreateAnd(X, ConstantInt::get(I->getContext(), SMin));
 	return NewI;
