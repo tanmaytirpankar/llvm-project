@@ -5035,10 +5035,13 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 }
 
 void log_optzn(std::string Name) {
+  // TODO-- John will fill in the missing code here
 }
 
 void cs6475_debug(std::string DbgString) {
-  if (false)
+  // set this to "false" to suppress debug output, before running "ninja test"
+  // set this to "true" to see debug output, to help you understand your transformation
+  if (true)
     dbgs() << DbgString;
 }
 
@@ -5047,12 +5050,12 @@ Instruction* cs6475_optimizer(Instruction *I) {
 
   // BEGIN JOHN REGEHR
   // x & (0x7FFFFFFF - x) → x & 0x80000000
-  Constant *C = nullptr;
+  ConstantInt *C = nullptr;
   Value *X = nullptr;
   Value *Y = nullptr;
   if (match(I, m_And(m_Value(X), m_Value(Y)))) {
     cs6475_debug("JDR: matched the 'and'\n");
-    if (match(Y, m_Sub(m_Constant(C), m_Specific(X)))) {
+    if (match(Y, m_Sub(m_ConstantInt(C), m_Specific(X)))) {
       cs6475_debug("JDR: matched the 'sub'\n");
       if (C->getUniqueInteger().isMaxSignedValue()) {
 	log_optzn("John Regehr");
