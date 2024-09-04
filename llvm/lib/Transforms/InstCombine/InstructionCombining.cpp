@@ -5002,8 +5002,13 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
 void log_optzn(std::string Name) {
 }
 
+void cs6475_debug(std::string DbgString) {
+  if (false)
+    dbgs() << DbgString;
+}
+
 Instruction* cs6475_optimizer(Instruction *I) {
-  dbgs() << "\nCS 6475 matcher: running now\n";
+  cs6475_debug("\nCS 6475 matcher: running now\n");
 
   // BEGIN JOHN REGEHR
   // x & (0x7FFFFFFF - x) → x & 0x80000000
@@ -5011,9 +5016,9 @@ Instruction* cs6475_optimizer(Instruction *I) {
   Value *X = nullptr;
   Value *Y = nullptr;
   if (match(I, m_And(m_Value(X), m_Value(Y)))) {
-    dbgs() << "JDR: matched the 'and'\n";
+    cs6475_debug("JDR: matched the 'and'\n");
     if (match(Y, m_Sub(m_Constant(C), m_Specific(X)))) {
-      dbgs() << "JDR: matched the 'sub'\n";
+      cs6475_debug("JDR: matched the 'sub'\n");
       if (C->getUniqueInteger().isMaxSignedValue()) {
 	log_optzn("John Regehr");
 	auto SMin = APInt::getSignedMinValue(C->getUniqueInteger().getBitWidth());
