@@ -99,6 +99,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <unistd.h>
 #include <memory>
 #include <optional>
 #include <string>
@@ -5034,8 +5035,20 @@ void InstCombinerImpl::tryToSinkInstructionDbgVariableRecords(
   }
 }
 
-void log_optzn(std::string Name) {
-  // TODO-- John will fill in the missing code here
+void log_optzn(const std::string &Name) {
+  char *home = getenv("HOME");
+  assert(home);
+  char fn[1024];
+  strcpy(fn, home);
+  strcat(fn, "/optimization_log.txt");
+  FILE *f = fopen(fn, "a");
+  assert(f);
+  char s[1024];
+  auto pid = getpid();
+  snprintf(s, 1024, "process %d: CS6475 optimization by %s\n", pid, Name.c_str());
+  int len = strlen(s);
+  int res = fwrite(s, 1, len, f);
+  assert(res == len);
 }
 
 void cs6475_debug(std::string DbgString) {
@@ -5050,18 +5063,37 @@ Instruction* cs6475_optimizer(Instruction *I) {
 
   // BEGIN JOHN REGEHR
   // x & (0x7FFFFFFF - x) → x & 0x80000000
-  ConstantInt *C = nullptr;
-  Value *X = nullptr;
-  Value *Y = nullptr;
-  if (match(I, m_And(m_Value(X), m_Value(Y)))) {
-    cs6475_debug("JDR: matched the 'and'\n");
-    if (match(Y, m_Sub(m_ConstantInt(C), m_Specific(X)))) {
-      cs6475_debug("JDR: matched the 'sub'\n");
-      if (C->getUniqueInteger().isMaxSignedValue()) {
-	log_optzn("John Regehr");
-	auto SMin = APInt::getSignedMinValue(C->getUniqueInteger().getBitWidth());
-	Instruction *NewI = BinaryOperator::CreateAnd(X, ConstantInt::get(I->getContext(), SMin));
-	return NewI;
+  {
+    const APInt *C = nullptr;
+    Value *X = nullptr;
+    Value *Y = nullptr;
+    if (match(I, m_And(m_Value(X), m_Value(Y)))) {
+      cs6475_debug("JDR: matched the 'and1'\n");
+      if (match(Y, m_Sub(m_APInt(C), m_Specific(X)))) {
+	cs6475_debug("JDR: matched the 'sub1'\n");
+	if (C->isMaxSignedValue()) {
+	  log_optzn("John Regehr 1");
+	  auto SMin = APInt::getSignedMinValue(C->getBitWidth());
+	  Instruction *NewI = BinaryOperator::CreateAnd(X, ConstantInt::get(I->getContext(), SMin));
+	  return NewI;
+	}
+      }
+    }
+  }
+  {
+    const APInt *C = nullptr;
+    Value *X = nullptr;
+    Value *Y = nullptr;
+    if (match(I, m_And(m_Value(X), m_Value(Y)))) {
+      cs6475_debug("JDR: matched the 'and2'\n");
+      if (match(X, m_Sub(m_APInt(C), m_Specific(Y)))) {
+	cs6475_debug("JDR: matched the 'sub2'\n");
+	if (C->isMaxSignedValue()) {
+	  log_optzn("John Regehr 2");
+	  auto SMin = APInt::getSignedMinValue(C->getBitWidth());
+	  Instruction *NewI = BinaryOperator::CreateAnd(Y, ConstantInt::get(I->getContext(), SMin));
+	  return NewI;
+	}
       }
     }
   }
